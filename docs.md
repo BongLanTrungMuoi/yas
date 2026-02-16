@@ -66,6 +66,8 @@ Th này là rối nhất phải chạy 1 server sonar riêng rồi còn yêu c�
 
 ### Server sonar setup
 
+Link đọc thêm nếu chạy không được nha: [sonarqube-source](https://docs.sonarsource.com/sonarqube-server)
+
 Tạo volume
 
 ```docker
