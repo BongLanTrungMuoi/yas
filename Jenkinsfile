@@ -105,11 +105,12 @@
 pipeline {
     agent any
     
-    tools {
-        maven 'Maven 3.8'
-        jdk 'Java 21'
+    agent {
+        docker {
+            image 'maven:3.9.6-eclipse-temurin-21'
+            args '-v $HOME/.m2:/root/.m2'
+        }
     }
-
     stages {
         stage('Check Environment') {
             steps {
