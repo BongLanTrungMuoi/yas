@@ -1,5 +1,5 @@
 package com.yas.media.controller;
-// hello im lazyminggggg
+// hello im lazymingggggg
 import com.yas.media.model.Media;
 import com.yas.media.model.dto.MediaDto;
 import com.yas.media.service.MediaService;
