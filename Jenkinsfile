@@ -116,6 +116,10 @@ pipeline {
                 echo 'Checking Java and Maven versions...'
                 sh 'java -version'
                 sh 'echo "Biến JAVA_HOME hiện tại: $JAVA_HOME"'
+                def toolHome = "/var/jenkins_home/tools/hudson.model.JDK/Java_21"
+                sh "ls -F ${toolHome}"
+                echo "--- Tìm file javac (để xác định JDK) ---"
+                sh "find ${toolHome} -name javac"
                 sh 'mvn -version'
             }
         }
