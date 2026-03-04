@@ -115,6 +115,7 @@ pipeline {
             steps {
                 echo 'Checking Java and Maven versions...'
                 sh 'java -version'
+                sh 'echo "Biến JAVA_HOME hiện tại: $JAVA_HOME"'
                 sh 'mvn -version'
             }
         }
