@@ -1,26 +1,103 @@
 pipeline {
     agent any
+    
+    tools {
+        maven 'Maven 3.8'
+        jdk 'Java 21'
+    }
+
     stages {
-        stage('Build Media Service') {
+        stage('Test Media') {
             when {
-                changeset "vmedia/**" 
+                changeset "media/**"
             }
             steps {
                 dir('media') {
-                    echo "media change"
+                    sh 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit 'media/target/surefire-reports/*.xml'
+                    jacoco(execPattern: 'media/target/jacoco.exec')
                 }
             }
         }
-        
-        stage('Build Product Service') {
+
+        stage('Build Media') {
+            when {
+                changeset "media/**"
+            }
+            steps {
+                dir('media') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test Product') {
             when {
                 changeset "product/**"
             }
             steps {
                 dir('product') {
-                    echo "product change"
+                    sh 'mvn test'
                 }
             }
+            post {
+                always {
+                    junit 'product/target/surefire-reports/*.xml'
+                    jacoco(execPattern: 'product/target/jacoco.exec')
+                }
+            }
+        }
+
+        stage('Build Product') {
+            when {
+                changeset "product/**"
+            }
+            steps {
+                dir('product') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test Cart') {
+            when {
+                changeset "cart/**"
+            }
+            steps {
+                dir('cart') {
+                    sh 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit 'cart/target/surefire-reports/*.xml'
+                    jacoco(execPattern: 'cart/target/jacoco.exec')
+                }
+            }
+        }
+
+        stage('Build Cart') {
+            when {
+                changeset "cart/**"
+            }
+            steps {
+                dir('cart') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline SUCCESS'
+        }
+        failure {
+            echo 'Pipeline FAILED'
         }
     }
 }
