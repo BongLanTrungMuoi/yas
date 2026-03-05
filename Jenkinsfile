@@ -107,8 +107,11 @@ pipeline {
     agent {
         docker {
             image 'maven:3.9.6-eclipse-temurin-21'
-            args '-v $HOME/.m2:/root/.m2'
+            args '-v $HOME/.m2:/var/maven/.m2'
         }
+    }
+    environment {
+        MAVEN_OPTS = '-Dmaven.repo.local=/var/maven/.m2/repository'
     }
     stages {
         stage('Test Media') {
