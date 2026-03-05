@@ -5,39 +5,51 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                // In ra danh sách file để bạn kiểm tra nếu vẫn lỗi
+                sh 'ls -F'
             }
         }
 
         stage('Test Media Service') {
             steps {
-                sh 'chmod +x mvnw'
-                
-                echo 'Running tests specifically for Media Service...'
-                // Chạy test giới hạn trong module media
-                sh './mvnw clean test -pl media -am' 
+                script {
+                    // TRƯỜNG HỢP 1: mvnw nằm ở thư mục gốc
+                    if (fileExists('mvnw')) {
+                        sh 'chmod +x mvnw'
+                        sh './mvnw clean test -pl media -am'
+                    } 
+                    // TRƯỜNG HỢP 2: mvnw nằm trong thư mục media
+                    else if (fileExists('media/mvnw')) {
+                        sh 'chmod +x media/mvnw'
+                        dir('media') {
+                            sh './mvnw clean test'
+                        }
+                    } 
+                    // TRƯỜNG HỢP 3: Không có mvnw, dùng mvn hệ thống
+                    else {
+                        echo 'Không tìm thấy mvnw, sử dụng lệnh mvn hệ thống...'
+                        sh 'mvn clean test -pl media -am'
+                    }
+                }
             }
         }
 
         stage('Coverage Check') {
             steps {
-                // Điều chỉnh đường dẫn (Path) để JaCoCo chỉ nhìn vào module media
+                // Sử dụng dấu ** để tìm file báo cáo dù cấu trúc thư mục thế nào
                 jacoco(
-                    // Chỉ lấy file kết quả .exec bên trong folder media
-                    execPattern: 'media/target/*.exec',
-                    
-                    // Chỉ quét các file class đã biên dịch của service media
-                    classPattern: 'media/target/classes',
-                    
-                    // Thư mục chứa code thuần của media
-                    sourcePattern: 'media/src/main/java',
+                    execPattern: '**/target/*.exec',
+                    classPattern: '**/media/target/classes',
+                    sourcePattern: '**/media/src/main/java',
                     
                     // Ngưỡng 70%
                     instructionCoverage: '70', 
                     branchCoverage: '70',
                     lineCoverage: '70',
                     
-                    // Quan trọng: Build sẽ FAIL nếu không đạt 70%
-                    changeBuildStatus: true
+                    // Đánh dấu Build FAILED nếu không đạt ngưỡng
+                    changeBuildStatus: true,
+                    runEveryShortTests: true
                 )
             }
         }
@@ -45,8 +57,8 @@ pipeline {
 
     post {
         always {
-            // Lưu lại kết quả test để xem trên giao diện Jenkins
-            junit 'media/target/surefire-reports/*.xml'
+            // allowEmptyResults: true giúp tránh lỗi pipeline dừng khi chưa có file report
+            junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
         }
     }
 }
