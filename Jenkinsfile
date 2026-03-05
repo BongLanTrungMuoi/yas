@@ -112,9 +112,9 @@ pipeline {
     }
     stages {
         stage('Test Media') {
-            when {
-                changeset "media/**"
-            }
+            // when {
+            //     changeset "media/**"
+            // }
             steps {
                 sh 'mvn test -pl media -am'
             }
@@ -127,61 +127,61 @@ pipeline {
         }
 
         stage('Build Media') {
-            when {
-                changeset "media/**"
-            }
+            // when {
+            //     changeset "media/**"
+            // }
             steps {
                 sh 'mvn package -pl media -am -DskipTests'
             }
         }
 
-        stage('Test Product') {
-            when {
-                changeset "product/**"
-            }
-            steps {
-                sh 'mvn test -pl product -am'
-            }
-            post {
-                always {
-                    junit 'product/target/surefire-reports/*.xml'
-                    jacoco(execPattern: 'product/target/jacoco.exec')
-                }
-            }
-        }
+        // stage('Test Product') {
+        //     when {
+        //         changeset "product/**"
+        //     }
+        //     steps {
+        //         sh 'mvn test -pl product -am'
+        //     }
+        //     post {
+        //         always {
+        //             junit 'product/target/surefire-reports/*.xml'
+        //             jacoco(execPattern: 'product/target/jacoco.exec')
+        //         }
+        //     }
+        // }
 
-        stage('Build Product') {
-            when {
-                changeset "product/**"
-            }
-            steps {
-                sh 'mvn package -pl product -am -DskipTests'
-            }
-        }
+        // stage('Build Product') {
+        //     when {
+        //         changeset "product/**"
+        //     }
+        //     steps {
+        //         sh 'mvn package -pl product -am -DskipTests'
+        //     }
+        // }
 
-        stage('Test Cart') {
-            when {
-                changeset "cart/**"
-            }
-            steps {
-                sh 'mvn test -pl cart -am'
-            }
-            post {
-                always {
-                    junit 'cart/target/surefire-reports/*.xml'
-                    jacoco(execPattern: 'cart/target/jacoco.exec')
-                }
-            }
-        }
+        // stage('Test Cart') {
+        //     when {
+        //         changeset "cart/**"
+        //     }
+        //     steps {
+        //         sh 'mvn test -pl cart -am'
+        //     }
+        //     post {
+        //         always {
+        //             junit 'cart/target/surefire-reports/*.xml'
+        //             jacoco(execPattern: 'cart/target/jacoco.exec')
+        //         }
+        //     }
+        // }
 
-        stage('Build Cart') {
-            when {
-                changeset "cart/**"
-            }
-            steps {
-                sh 'mvn package -pl cart -am -DskipTests'
-            }
-        }
+        // stage('Build Cart') {
+        //     when {
+        //         changeset "cart/**"
+        //     }
+        //     steps {
+        //         sh 'mvn package -pl cart -am -DskipTests'
+        //     }
+        // }
     }
 
     post {
