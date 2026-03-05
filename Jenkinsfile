@@ -8,40 +8,43 @@ pipeline {
             }
         }
 
-        stage('Test media') {
+        stage('Test Media Service') {
             steps {
-                echo 'Running tests for Media Service...'
-                // Giả sử dùng Maven, lệnh này sẽ chạy test và tạo báo cáo coverage
-                sh './mvnw clean test' 
+                echo 'Running tests specifically for Media Service...'
+                // Chạy test giới hạn trong module media
+                sh './mvnw clean test -pl media -am' 
             }
         }
 
         stage('Coverage Check') {
             steps {
-                // Sử dụng Plugin JaCoCo để phân tích kết quả
-                // Các con số tương ứng với: (Min, Max)
+                // Điều chỉnh đường dẫn (Path) để JaCoCo chỉ nhìn vào module media
                 jacoco(
-                    execPattern: '**/target/*.exec',
-                    classPattern: '**/target/classes',
-                    sourcePattern: '**/src/main/java',
-                    exclusionPattern: '**/src/test/**',
+                    // Chỉ lấy file kết quả .exec bên trong folder media
+                    execPattern: 'media/target/*.exec',
                     
-                    // Thiết lập ngưỡng (Thresholds)
-                    // Nếu instructionCoverage < 70, build sẽ chuyển sang trạng thái UNSTABLE hoặc FAILURE
+                    // Chỉ quét các file class đã biên dịch của service media
+                    classPattern: 'media/target/classes',
+                    
+                    // Thư mục chứa code thuần của media
+                    sourcePattern: 'media/src/main/java',
+                    
+                    // Ngưỡng 70%
                     instructionCoverage: '70', 
                     branchCoverage: '70',
-                    lineCoverage: '70'
+                    lineCoverage: '70',
+                    
+                    // Quan trọng: Build sẽ FAIL nếu không đạt 70%
+                    changeBuildStatus: true
                 )
             }
         }
     }
 
     post {
-        success {
-            echo 'Chúc mừng! Media Service pass test với độ phủ trên 70%.'
-        }
-        unsuccessful {
-            echo 'Build failed hoặc Code Coverage không đạt ngưỡng 70%.'
+        always {
+            // Lưu lại kết quả test để xem trên giao diện Jenkins
+            junit 'media/target/surefire-reports/*.xml'
         }
     }
 }
