@@ -22,13 +22,13 @@ pipeline {
                     else if (fileExists('media/mvnw')) {
                         sh 'chmod +x media/mvnw'
                         dir('media') {
-                            sh './mvnw clean test'
+                            sh './mvnw clean install'
                         }
                     } 
                     // TRƯỜNG HỢP 3: Không có mvnw, dùng mvn hệ thống
                     else {
                         echo 'Không tìm thấy mvnw, sử dụng lệnh mvn hệ thống...'
-                        sh 'mvn clean test -pl media -am'
+                        sh 'mvn clean install -pl media -am'
                     }
                 }
             }
@@ -38,9 +38,12 @@ pipeline {
             steps {
                 // Sử dụng dấu ** để tìm file báo cáo dù cấu trúc thư mục thế nào
                 jacoco(
-                    execPattern: '**/target/*.exec',
-                    classPattern: '**/media/target/classes',
-                    sourcePattern: '**/media/src/main/java',
+                    // execPattern: '**/target/*.exec',
+                    // classPattern: '**/media/target/classes',
+                    // sourcePattern: '**/media/src/main/java',
+                    execPattern: 'media/target/jacoco.exec',
+                    classPattern: 'media/target/classes',
+                    sourcePattern: 'media/src/main/java',
                     
                     // Ngưỡng 70%
                     instructionCoverage: '70', 
