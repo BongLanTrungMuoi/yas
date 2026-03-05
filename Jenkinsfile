@@ -10,6 +10,8 @@ pipeline {
 
         stage('Test Media Service') {
             steps {
+                sh 'chmod +x mvnw'
+                
                 echo 'Running tests specifically for Media Service...'
                 // Chạy test giới hạn trong module media
                 sh './mvnw clean test -pl media -am' 
