@@ -116,9 +116,7 @@ pipeline {
                 changeset "media/**"
             }
             steps {
-                dir('media') {
-                    sh 'mvn test'
-                }
+                sh 'mvn test -pl media -am'
             }
             post {
                 always {
@@ -133,9 +131,7 @@ pipeline {
                 changeset "media/**"
             }
             steps {
-                dir('media') {
-                    sh 'mvn package -DskipTests'
-                }
+                sh 'mvn package -pl media -am -DskipTests'
             }
         }
 
@@ -144,9 +140,7 @@ pipeline {
                 changeset "product/**"
             }
             steps {
-                dir('product') {
-                    sh 'mvn test'
-                }
+                sh 'mvn test -pl product -am'
             }
             post {
                 always {
@@ -161,9 +155,7 @@ pipeline {
                 changeset "product/**"
             }
             steps {
-                dir('product') {
-                    sh 'mvn package -DskipTests'
-                }
+                sh 'mvn package -pl product -am -DskipTests'
             }
         }
 
@@ -172,9 +164,7 @@ pipeline {
                 changeset "cart/**"
             }
             steps {
-                dir('cart') {
-                    sh 'mvn test'
-                }
+                sh 'mvn test -pl cart -am'
             }
             post {
                 always {
@@ -189,9 +179,7 @@ pipeline {
                 changeset "cart/**"
             }
             steps {
-                dir('cart') {
-                    sh 'mvn package -DskipTests'
-                }
+                sh 'mvn package -pl cart -am -DskipTests'
             }
         }
     }
