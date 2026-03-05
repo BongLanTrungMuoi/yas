@@ -71,9 +71,9 @@ pipeline {
         }
 
         stage('Build Cart') {
-            // when {
-            //     changeset "cart/**"
-            // }
+            when {
+                changeset "cart/**"
+            }
             steps {
                 sh 'mvn package -pl cart -am -DskipTests'
             }
