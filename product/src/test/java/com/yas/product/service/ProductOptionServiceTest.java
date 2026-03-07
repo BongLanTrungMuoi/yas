@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,6 +30,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+
+
 @ExtendWith(MockitoExtension.class)
 class ProductOptionServiceTest {
 
@@ -37,7 +40,8 @@ class ProductOptionServiceTest {
     @InjectMocks
     private ProductOptionService productOptionService;
 
-    // Retrieve a pageable list of product options successfully
+    // --- CÁC HÀM TEST CŨ CỦA BẠN (GIỮ NGUYÊN) ---
+
     @Test
     void test_get_pageable_product_options_success() {
         List<ProductOption> productOptions = List.of(new ProductOption(), new ProductOption());
@@ -51,7 +55,6 @@ class ProductOptionServiceTest {
         assertEquals(2, result.pageSize());
     }
 
-    // Create a new product option when the name is unique
     @Test
     void test_create_product_option_unique_name() {
         ProductOptionPostVm postVm = new ProductOptionPostVm("UniqueName");
@@ -64,7 +67,6 @@ class ProductOptionServiceTest {
         verify(productOptionRepository).save(any(ProductOption.class));
     }
 
-    // Update an existing product option when the name is unique
     @Test
     void test_update_product_option_unique_name() {
         ProductOption existingProductOption = new ProductOption();
@@ -82,7 +84,6 @@ class ProductOptionServiceTest {
         assertEquals("NewUniqueName", result.getName());
     }
 
-    // Attempt to create a product option with a duplicated name
     @Test
     void test_create_product_option_duplicated_name() {
         ProductOptionPostVm postVm = new ProductOptionPostVm("DuplicatedName");
@@ -93,7 +94,6 @@ class ProductOptionServiceTest {
         });
     }
 
-    // Attempt to update a product option with a duplicated name
     @Test
     void test_update_product_option_duplicated_name() {
         ProductOption existingProductOption = new ProductOption();
@@ -109,7 +109,6 @@ class ProductOptionServiceTest {
         });
     }
 
-    // Attempt to update a non-existent product option
     @Test
     void test_update_non_existent_product_option() {
         ProductOptionPostVm postVm = new ProductOptionPostVm("NewName");
@@ -120,7 +119,6 @@ class ProductOptionServiceTest {
         });
     }
 
-    // Handle an empty list of product options gracefully
     @Test
     void test_get_pageable_product_options_empty_list() {
         Page<ProductOption> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 2), 0);
@@ -131,5 +129,47 @@ class ProductOptionServiceTest {
         assertTrue(result.productOptionContent().isEmpty());
         assertEquals(0, result.pageNo());
         assertEquals(2, result.pageSize());
+    }
+
+    // --- CÁC HÀM TEST BỔ SUNG ---
+
+    @Test
+    void test_get_pageable_product_options_metadata_check() {
+        // Kiểm tra các thông tin phân trang như totalPages, totalElements
+        ProductOption option = new ProductOption();
+        option.setId(1L);
+        option.setName("Size");
+        
+        Pageable pageable = PageRequest.of(0, 5);
+        Page<ProductOption> page = new PageImpl<>(List.of(option), pageable, 10);
+        
+        when(productOptionRepository.findAll(any(Pageable.class))).thenReturn(page);
+
+        ProductOptionListGetVm result = productOptionService.getPageableProductOptions(0, 5);
+
+        assertEquals(10, result.totalElements());
+        assertEquals(2, result.totalPages()); // 10 phần tử, size 5 => 2 trang
+        assertFalse(result.isLast()); // Trang 0 không phải trang cuối vì còn trang 1
+    }
+
+    @Test
+    void test_update_product_option_keep_same_name_success() {
+        // Trường hợp cập nhật nhưng không đổi tên, logic checkExistedName phải cho qua
+        ProductOption existingOption = new ProductOption();
+        existingOption.setId(1L);
+        existingOption.setName("Color");
+
+        ProductOptionPostVm postVm = new ProductOptionPostVm("Color");
+
+        when(productOptionRepository.findById(1L)).thenReturn(Optional.of(existingOption));
+        // Repository trả về null nghĩa là không có bản ghi KHÁC trùng tên
+        when(productOptionRepository.findExistedName("Color", 1L)).thenReturn(null);
+        when(productOptionRepository.save(any(ProductOption.class))).thenReturn(existingOption);
+
+        ProductOption result = productOptionService.update(postVm, 1L);
+
+        assertNotNull(result);
+        assertEquals("Color", result.getName());
+        verify(productOptionRepository).save(any(ProductOption.class));
     }
 }
