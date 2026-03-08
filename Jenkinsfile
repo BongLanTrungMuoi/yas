@@ -8,68 +8,80 @@ pipeline {
     }
     stages {
         stage('Test Media') {
-            // when {
-            //     changeset "media/**"
-            // }
+            when {
+                changeset "media/**"
+            }
             steps {
                 sh 'mvn -e test -pl media -am'
             }
             post {
                 always {
                     junit 'media/target/surefire-reports/*.xml'
-                    // jacoco(execPattern: 'media/target/jacoco.exec')
+                    jacoco(
+                    execPattern: 'product/target/jacoco.exec',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '100'
+                )
                 }
             }
         }
 
         stage('Build Media') {
-            // when {
-            //     changeset "media/**"
-            // }
+            when {
+                changeset "media/**"
+            }
             steps {
                 sh 'mvn package -pl media -am -DskipTests'
             }
         }
 
         stage('Test Product') {
-            // when {
-            //     changeset "product/**"
-            // }
+            when {
+                changeset "product/**"
+            }
             steps {
                 sh 'mvn test -pl product -am'
             }
             post {
                 always {
                     junit 'product/target/surefire-reports/*.xml'
-                    jacoco(execPattern: 'product/target/jacoco.exec')
+                    jacoco(
+                    execPattern: 'product/target/jacoco.exec',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '100'
+                )
                 }
             }
         }
 
         stage('Build Product') {
-            // when {
-            //     changeset "product/**"
-            // }
+            when {
+                changeset "product/**"
+            }
             steps {
                 sh 'mvn package -pl product -am -DskipTests'
             }
         }
 
         stage('Test Cart') {
-            // when {
-            //     changeset "cart/**"
-            // }
+            when {
+                changeset "cart/**"
+            }
             steps {
                 sh 'mvn test -pl cart -am'
             }
             post {
                 always {
                     junit 'cart/target/surefire-reports/*.xml'
-                    jacoco(execPattern: 'cart/target/jacoco.exec')
+                    jacoco(
+                    execPattern: 'cart/target/jacoco.exec',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '100'
+                )
                 }
             }
         }
-
+    
         stage('Build Cart') {
             when {
                 changeset "cart/**"
