@@ -1,414 +1,846 @@
 package com.yas.product.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.yas.commonlibrary.exception.BadRequestException;
 import com.yas.commonlibrary.exception.DuplicatedException;
 import com.yas.commonlibrary.exception.NotFoundException;
-import com.yas.product.model.*;
-import com.yas.product.repository.*;
+import com.yas.product.model.Brand;
+import com.yas.product.model.Category;
+import com.yas.product.model.Product;
+import com.yas.product.model.ProductCategory;
+import com.yas.product.model.ProductImage;
+import com.yas.product.model.ProductOption;
+import com.yas.product.model.ProductOptionCombination;
+import com.yas.product.model.ProductRelated;
+import com.yas.product.model.enumeration.DimensionUnit;
+import com.yas.product.model.enumeration.FilterExistInWhSelection;
+import com.yas.product.repository.BrandRepository;
+import com.yas.product.repository.CategoryRepository;
+import com.yas.product.repository.ProductCategoryRepository;
+import com.yas.product.repository.ProductImageRepository;
+import com.yas.product.repository.ProductOptionCombinationRepository;
+import com.yas.product.repository.ProductOptionRepository;
+import com.yas.product.repository.ProductOptionValueRepository;
+import com.yas.product.repository.ProductRelatedRepository;
+import com.yas.product.repository.ProductRepository;
 import com.yas.product.viewmodel.NoFileMediaVm;
 import com.yas.product.viewmodel.product.ProductDetailVm;
+import com.yas.product.viewmodel.product.ProductEsDetailVm;
+import com.yas.product.viewmodel.product.ProductFeatureGetVm;
 import com.yas.product.viewmodel.product.ProductGetDetailVm;
+import com.yas.product.viewmodel.product.ProductInfoVm;
+import com.yas.product.viewmodel.product.ProductListGetFromCategoryVm;
+import com.yas.product.viewmodel.product.ProductListGetVm;
+import com.yas.product.viewmodel.product.ProductListVm;
 import com.yas.product.viewmodel.product.ProductPostVm;
-import com.yas.product.viewmodel.product.ProductPutVm;
+import com.yas.product.viewmodel.product.ProductQuantityPostVm;
 import com.yas.product.viewmodel.product.ProductQuantityPutVm;
-import com.yas.product.viewmodel.product.ProductVariationPostVm;
+import com.yas.product.viewmodel.product.ProductSlugGetVm;
+import com.yas.product.viewmodel.product.ProductThumbnailGetVm;
+import com.yas.product.viewmodel.product.ProductThumbnailVm;
+import com.yas.product.viewmodel.product.ProductsGetVm;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
-    @Mock private ProductRepository productRepository;
-    @Mock private MediaService mediaService;
-    @Mock private BrandRepository brandRepository;
-    @Mock private CategoryRepository categoryRepository;
-    @Mock private ProductCategoryRepository productCategoryRepository;
-    @Mock private ProductImageRepository productImageRepository;
-    @Mock private ProductOptionRepository productOptionRepository;
-    @Mock private ProductOptionValueRepository productOptionValueRepository;
-    @Mock private ProductOptionCombinationRepository productOptionCombinationRepository;
-    @Mock private ProductRelatedRepository productRelatedRepository;
+    @Mock
+    private ProductRepository productRepository;
+
+    @Mock
+    private MediaService mediaService;
+
+    @Mock
+    private BrandRepository brandRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private ProductCategoryRepository productCategoryRepository;
+
+    @Mock
+    private ProductImageRepository productImageRepository;
+
+    @Mock
+    private ProductOptionRepository productOptionRepository;
+
+    @Mock
+    private ProductOptionValueRepository productOptionValueRepository;
+
+    @Mock
+    private ProductOptionCombinationRepository productOptionCombinationRepository;
+
+    @Mock
+    private ProductRelatedRepository productRelatedRepository;
 
     @InjectMocks
     private ProductService productService;
 
-    private Brand brand;
+    private Product sampleProduct;
+    private Brand sampleBrand;
 
     @BeforeEach
     void setUp() {
-        // Chỉ khởi tạo data mẫu, không thực hiện stubbing (when/then) ở đây
-        brand = new Brand();
-        brand.setId(1L);
-        brand.setName("Sony");
+        sampleBrand = new Brand();
+        sampleBrand.setId(1L);
+        sampleBrand.setName("Test Brand");
+        sampleBrand.setSlug("test-brand");
+
+        sampleProduct = Product.builder()
+            .id(1L)
+            .name("Test Product")
+            .slug("test-product")
+            .sku("SKU-001")
+            .gtin("GTIN-001")
+            .price(100.0)
+            .isPublished(true)
+            .isFeatured(false)
+            .isAllowedToOrder(true)
+            .isVisibleIndividually(true)
+            .stockTrackingEnabled(false)
+            .thumbnailMediaId(1L)
+            .brand(sampleBrand)
+            .weight(1.0)
+            .dimensionUnit(DimensionUnit.CM)
+            .length(10.0)
+            .width(5.0)
+            .height(3.0)
+            .metaTitle("Meta Title")
+            .metaKeyword("keyword")
+            .metaDescription("Meta Description")
+            .taxClassId(1L)
+            .productCategories(new ArrayList<>())
+            .productImages(new ArrayList<>())
+            .products(new ArrayList<>())
+            .relatedProducts(new ArrayList<>())
+            .attributeValues(new ArrayList<>())
+            .build();
     }
 
-    @Test
-    @DisplayName("Tạo sản phẩm thành công khi dữ liệu hợp lệ")
-    void createProduct_Success() {
+    // ==================== createProduct ====================
 
-        ProductPostVm productPostVm = mock(ProductPostVm.class);
+    @Nested
+    class CreateProductTest {
 
-        when(productPostVm.name()).thenReturn("Product A");
-        when(productPostVm.slug()).thenReturn("product-a");
-        when(productPostVm.sku()).thenReturn("SKU001");
-        when(productPostVm.length()).thenReturn(10.0);
-        when(productPostVm.width()).thenReturn(5.0);
-        when(productPostVm.brandId()).thenReturn(1L);
-        when(productPostVm.categoryIds()).thenReturn(List.of(1L,2L));
+        @Test
+        void createProduct_whenLengthLessThanWidth_shouldThrowBadRequestException() {
+            ProductPostVm postVm = new ProductPostVm(
+                "Product", "product-slug", 1L, List.of(), "short", "desc", "spec",
+                "SKU-NEW", "GTIN-NEW", 1.0, DimensionUnit.CM,
+                5.0, 10.0, 3.0,  // length < width
+                100.0, true, true, false, true, false,
+                "meta", "key", "metaDesc", 1L, List.of(),
+                List.of(), List.of(), List.of(), List.of(), 1L
+            );
 
-        when(brandRepository.findById(1L)).thenReturn(Optional.of(brand));
-        when(productRepository.findBySlugAndIsPublishedTrue(anyString())).thenReturn(Optional.empty());
-        when(productRepository.findBySkuAndIsPublishedTrue(anyString())).thenReturn(Optional.empty());
+            assertThrows(BadRequestException.class, () -> productService.createProduct(postVm));
+        }
 
-        Category category1 = new Category();
-        category1.setId(1L);
+        @Test
+        void createProduct_whenSlugAlreadyExists_shouldThrowDuplicatedException() {
+            ProductPostVm postVm = new ProductPostVm(
+                "Product", "existing-slug", 1L, List.of(), "short", "desc", "spec",
+                "SKU-NEW", "GTIN-NEW", 1.0, DimensionUnit.CM,
+                10.0, 5.0, 3.0,
+                100.0, true, true, false, true, false,
+                "meta", "key", "metaDesc", 1L, List.of(),
+                List.of(), List.of(), List.of(), List.of(), 1L
+            );
 
-        Category category2 = new Category();
-        category2.setId(2L);
+            when(productRepository.findBySlugAndIsPublishedTrue("existing-slug"))
+                .thenReturn(Optional.of(sampleProduct));
 
-        when(categoryRepository.findAllById(anyList()))
-                .thenReturn(List.of(category1, category2));
+            assertThrows(DuplicatedException.class, () -> productService.createProduct(postVm));
+        }
 
-        Product savedProduct = new Product();
-        savedProduct.setId(100L);
-        savedProduct.setName("Product A");
+        @Test
+        void createProduct_whenValidRequest_shouldReturnProductGetDetailVm() {
+            ProductPostVm postVm = new ProductPostVm(
+                "New Product", "new-product", 1L, List.of(1L), "short", "desc", "spec",
+                "SKU-NEW", "GTIN-NEW", 1.0, DimensionUnit.CM,
+                10.0, 5.0, 3.0,
+                100.0, true, true, false, true, false,
+                "meta", "key", "metaDesc", 1L, List.of(),
+                List.of(), List.of(), List.of(), List.of(), 1L
+            );
 
-        when(productRepository.save(any(Product.class)))
-                .thenReturn(savedProduct);
+            Product savedProduct = Product.builder()
+                .id(2L)
+                .name("New Product")
+                .slug("new-product")
+                .build();
 
-        ProductGetDetailVm result = productService.createProduct(productPostVm);
+            when(productRepository.findBySlugAndIsPublishedTrue("new-product")).thenReturn(Optional.empty());
+            when(productRepository.findBySkuAndIsPublishedTrue("SKU-NEW")).thenReturn(Optional.empty());
+            when(productRepository.findByGtinAndIsPublishedTrue("GTIN-NEW")).thenReturn(Optional.empty());
+            when(productRepository.findAllById(anyList())).thenReturn(List.of());
+            when(brandRepository.findById(1L)).thenReturn(Optional.of(sampleBrand));
 
-        assertThat(result).isNotNull();
+            Category category = new Category();
+            category.setId(1L);
+            category.setName("Category 1");
+            when(categoryRepository.findAllById(List.of(1L))).thenReturn(List.of(category));
 
-        verify(productRepository).save(any(Product.class));
-        verify(productCategoryRepository).saveAll(anyList());
+            when(productRepository.save(any(Product.class))).thenReturn(savedProduct);
+            when(productImageRepository.saveAll(anyList())).thenReturn(List.of());
+            when(productCategoryRepository.saveAll(anyList())).thenReturn(List.of());
+
+            ProductGetDetailVm result = productService.createProduct(postVm);
+
+            assertNotNull(result);
+            assertEquals("New Product", result.name());
+            assertEquals("new-product", result.slug());
+            verify(productRepository).save(any(Product.class));
+        }
     }
 
-    @Test
-    @DisplayName("Lỗi khi chiều dài nhỏ hơn chiều rộng")
-    void createProduct_LengthSmallerThanWidth_ThrowsBadRequest() {
-        ProductPostVm productPostVm = mock(ProductPostVm.class);
-        when(productPostVm.length()).thenReturn(5.0);
-        when(productPostVm.width()).thenReturn(10.0);
+    // ==================== getProductById ====================
 
-        assertThatThrownBy(() -> productService.createProduct(productPostVm))
-                .isInstanceOf(BadRequestException.class);
-        
-        // Mockito sẽ không phàn nàn vì các stubbing khác không hề được gọi ở đây
+    @Nested
+    class GetProductByIdTest {
+
+        @Test
+        void getProductById_whenProductExists_shouldReturnProductDetailVm() {
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/file.jpg"));
+
+            ProductDetailVm result = productService.getProductById(1L);
+
+            assertNotNull(result);
+            assertEquals(1L, result.id());
+            assertEquals("Test Product", result.name());
+            assertEquals("test-product", result.slug());
+            assertEquals(100.0, result.price());
+            assertEquals(1L, result.brandId());
+        }
+
+        @Test
+        void getProductById_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> productService.getProductById(999L));
+        }
     }
 
-    @Test
-    @DisplayName("Lấy chi tiết sản phẩm thành công")
-    void getProductById_Success() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setThumbnailMediaId(10L);
+    // ==================== getProductsWithFilter ====================
 
-        NoFileMediaVm mockMedia = mock(NoFileMediaVm.class);
-        when(mockMedia.url()).thenReturn("http://image.url");
-        
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(mediaService.getMedia(10L)).thenReturn(mockMedia);
+    @Nested
+    class GetProductsWithFilterTest {
 
-        var result = productService.getProductById(1L);
+        @Test
+        void getProductsWithFilter_shouldReturnProductListGetVm() {
+            List<Product> products = List.of(sampleProduct);
+            Page<Product> productPage = new PageImpl<>(products, PageRequest.of(0, 10), 1);
 
-        assertThat(result.id()).isEqualTo(1L);
-        verify(mediaService).getMedia(10L);
+            when(productRepository.getProductsWithFilter(anyString(), anyString(), any(Pageable.class)))
+                .thenReturn(productPage);
+
+            ProductListGetVm result = productService.getProductsWithFilter(0, 10, "Test", "");
+
+            assertNotNull(result);
+            assertEquals(1, result.productContent().size());
+            assertEquals(0, result.pageNo());
+            assertEquals(10, result.pageSize());
+            assertEquals(1, result.totalElements());
+        }
     }
 
-    @Test
-    @DisplayName("Xóa sản phẩm thành công")
-    void deleteProduct_Success() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setPublished(true);
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+    // ==================== getLatestProducts ====================
 
-        productService.deleteProduct(1L);
+    @Nested
+    class GetLatestProductsTest {
 
-        assertThat(product.isPublished()).isFalse();
-        verify(productRepository).save(product);
+        @Test
+        void getLatestProducts_whenCountIsZero_shouldReturnEmptyList() {
+            List<ProductListVm> result = productService.getLatestProducts(0);
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void getLatestProducts_whenCountIsNegative_shouldReturnEmptyList() {
+            List<ProductListVm> result = productService.getLatestProducts(-1);
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void getLatestProducts_whenProductsExist_shouldReturnProducts() {
+            when(productRepository.getLatestProducts(any(Pageable.class)))
+                .thenReturn(List.of(sampleProduct));
+
+            List<ProductListVm> result = productService.getLatestProducts(5);
+
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+        }
+
+        @Test
+        void getLatestProducts_whenNoProducts_shouldReturnEmptyList() {
+            when(productRepository.getLatestProducts(any(Pageable.class)))
+                .thenReturn(List.of());
+
+            List<ProductListVm> result = productService.getLatestProducts(5);
+
+            assertTrue(result.isEmpty());
+        }
     }
 
-    @Test
-    @DisplayName("Trừ số lượng tồn kho thành công")
-    void subtractStockQuantity_Success() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setStockQuantity(20L);
-        product.setStockTrackingEnabled(true);
+    // ==================== getProductsByBrand ====================
 
-        when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
-        ProductQuantityPutVm item = new ProductQuantityPutVm(1L, 5L);
+    @Nested
+    class GetProductsByBrandTest {
 
-        productService.subtractStockQuantity(List.of(item));
+        @Test
+        void getProductsByBrand_whenBrandExists_shouldReturnProducts() {
+            when(brandRepository.findBySlug("test-brand")).thenReturn(Optional.of(sampleBrand));
+            when(productRepository.findAllByBrandAndIsPublishedTrueOrderByIdAsc(sampleBrand))
+                .thenReturn(List.of(sampleProduct));
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
 
-        assertThat(product.getStockQuantity()).isEqualTo(15L);
-        verify(productRepository).saveAll(anyList());
+            List<ProductThumbnailVm> result = productService.getProductsByBrand("test-brand");
+
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+        }
+
+        @Test
+        void getProductsByBrand_whenBrandNotFound_shouldThrowNotFoundException() {
+            when(brandRepository.findBySlug("unknown-brand")).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> productService.getProductsByBrand("unknown-brand"));
+        }
     }
 
-    @Test
-    @DisplayName("Lỗi NotFound khi cập nhật sản phẩm không tồn tại")
-    void updateProduct_NotFound_ThrowsException() {
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
-        ProductPutVm putVm = mock(ProductPutVm.class);
+    // ==================== getProductsFromCategory ====================
 
-        assertThatThrownBy(() -> productService.updateProduct(999L, putVm))
-                .isInstanceOf(NotFoundException.class);
+    @Nested
+    class GetProductsFromCategoryTest {
+
+        @Test
+        void getProductsFromCategory_whenCategoryNotFound_shouldThrowNotFoundException() {
+            when(categoryRepository.findBySlug("unknown")).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                () -> productService.getProductsFromCategory(0, 10, "unknown"));
+        }
+
+        @Test
+        void getProductsFromCategory_whenCategoryExists_shouldReturnProducts() {
+            Category category = new Category();
+            category.setId(1L);
+            category.setName("Electronics");
+            category.setSlug("electronics");
+
+            ProductCategory productCategory = ProductCategory.builder()
+                .product(sampleProduct)
+                .category(category)
+                .build();
+
+            Page<ProductCategory> page = new PageImpl<>(List.of(productCategory), PageRequest.of(0, 10), 1);
+
+            when(categoryRepository.findBySlug("electronics")).thenReturn(Optional.of(category));
+            when(productCategoryRepository.findAllByCategory(any(Pageable.class), eq(category))).thenReturn(page);
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
+
+            ProductListGetFromCategoryVm result = productService.getProductsFromCategory(0, 10, "electronics");
+
+            assertNotNull(result);
+            assertEquals(1, result.productContent().size());
+        }
     }
 
-    @Test
-    void createProduct_DuplicateSlug_ThrowsException() {
+    // ==================== getListFeaturedProducts ====================
 
-        ProductPostVm vm = mock(ProductPostVm.class);
+    @Nested
+    class GetListFeaturedProductsTest {
 
-        when(vm.slug()).thenReturn("product-a");
-        when(productRepository.findBySlugAndIsPublishedTrue("product-a"))
-                .thenReturn(Optional.of(new Product()));
+        @Test
+        void getListFeaturedProducts_shouldReturnFeaturedProducts() {
+            Page<Product> productPage = new PageImpl<>(List.of(sampleProduct), PageRequest.of(0, 10), 1);
 
-        // assertThatThrownBy(() -> productService.createProduct(vm))
-        //         .isInstanceOf(BadRequestException.class);
-        assertThatThrownBy(() -> productService.createProduct(vm))
-        .isInstanceOf(DuplicatedException.class);
-    }
-    @Test
-    void createProduct_DuplicateSku_ThrowsException() {
+            when(productRepository.getFeaturedProduct(any(Pageable.class))).thenReturn(productPage);
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
 
-        ProductPostVm vm = mock(ProductPostVm.class);
+            ProductFeatureGetVm result = productService.getListFeaturedProducts(0, 10);
 
-        when(vm.slug()).thenReturn("product-a");
-        when(vm.sku()).thenReturn("SKU001");
-
-        when(productRepository.findBySlugAndIsPublishedTrue(anyString()))
-                .thenReturn(Optional.empty());
-
-        when(productRepository.findBySkuAndIsPublishedTrue("SKU001"))
-                .thenReturn(Optional.of(new Product()));
-
-        // assertThatThrownBy(() -> productService.createProduct(vm))
-        //         .isInstanceOf(BadRequestException.class);
-        assertThatThrownBy(() -> productService.createProduct(vm))
-        .isInstanceOf(DuplicatedException.class);
-    }
-    @Test
-    void getProductById_NotFound() {
-
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> productService.getProductById(99L))
-                .isInstanceOf(NotFoundException.class);
-    }
-    @Test
-    void subtractStockQuantity_WhenTrackingDisabled() {
-
-        Product product = new Product();
-        product.setId(1L);
-        product.setStockTrackingEnabled(false);
-        product.setStockQuantity(20L);
-
-        when(productRepository.findAllByIdIn(anyList()))
-                .thenReturn(List.of(product));
-
-        ProductQuantityPutVm item = new ProductQuantityPutVm(1L,5L);
-
-        productService.subtractStockQuantity(List.of(item));
-
-        assertThat(product.getStockQuantity()).isEqualTo(20L);
-
-        verify(productRepository).saveAll(anyList());
+            assertNotNull(result);
+            assertEquals(1, result.productList().size());
+            assertEquals(1, result.totalPage());
+        }
     }
 
-    @Test
-    @DisplayName("Tạo sản phẩm thất bại khi brand không tồn tại")
-    void createProduct_BrandNotFound() {
+    // ==================== getFeaturedProductsById ====================
 
-        ProductPostVm vm = mock(ProductPostVm.class);
+    @Nested
+    class GetFeaturedProductsByIdTest {
 
-        when(vm.name()).thenReturn("Product A");
-        when(vm.slug()).thenReturn("product-a");
-        when(vm.sku()).thenReturn("sku-a");
-        when(vm.length()).thenReturn(10.0);
-        when(vm.width()).thenReturn(5.0);
-        when(vm.brandId()).thenReturn(99L);
+        @Test
+        void getFeaturedProductsById_shouldReturnThumbnailVms() {
+            when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(sampleProduct));
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
 
-        when(brandRepository.findById(99L)).thenReturn(Optional.empty());
+            List<ProductThumbnailGetVm> result = productService.getFeaturedProductsById(List.of(1L));
 
-        assertThatThrownBy(() -> productService.createProduct(vm))
-                .isInstanceOf(NotFoundException.class);
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+            assertEquals(100.0, result.get(0).price());
+        }
     }
 
-    @Test
-    @DisplayName("Tạo sản phẩm thất bại khi slug đã tồn tại")
-    void createProduct_SlugAlreadyExists() {
+    // ==================== deleteProduct ====================
 
-        ProductPostVm vm = mock(ProductPostVm.class);
+    @Nested
+    class DeleteProductTest {
 
-        when(vm.slug()).thenReturn("product-a");
+        @Test
+        void deleteProduct_whenProductExists_shouldSetPublishedFalse() {
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+            when(productRepository.save(any(Product.class))).thenReturn(sampleProduct);
 
-        when(productRepository.findBySlugAndIsPublishedTrue("product-a"))
-                .thenReturn(Optional.of(new Product()));
+            productService.deleteProduct(1L);
 
-        assertThatThrownBy(() -> productService.createProduct(vm))
-                .isInstanceOf(DuplicatedException.class)
-                .hasMessageContaining("Slug");
-    }
-    @Test
-    void subtractStockQuantity_TrackingDisabled() {
+            verify(productRepository).save(any(Product.class));
+        }
 
-        Product product = new Product();
-        product.setId(1L);
-        product.setStockQuantity(20L);
-        product.setStockTrackingEnabled(false);
+        @Test
+        void deleteProduct_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
 
-        when(productRepository.findAllByIdIn(anyList()))
-                .thenReturn(List.of(product));
+            assertThrows(NotFoundException.class, () -> productService.deleteProduct(999L));
+        }
 
-        ProductQuantityPutVm item = new ProductQuantityPutVm(1L, 5L);
+        @Test
+        void deleteProduct_whenProductHasParent_shouldDeleteOptionCombinations() {
+            Product parentProduct = Product.builder().id(100L).name("Parent").build();
+            sampleProduct.setParent(parentProduct);
 
-        productService.subtractStockQuantity(List.of(item));
+            ProductOptionCombination combination = ProductOptionCombination.builder()
+                .product(sampleProduct)
+                .build();
 
-        assertThat(product.getStockQuantity()).isEqualTo(20L);
-    }
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+            when(productOptionCombinationRepository.findAllByProduct(sampleProduct))
+                .thenReturn(List.of(combination));
+            when(productRepository.save(any(Product.class))).thenReturn(sampleProduct);
 
-    @Test
-    @DisplayName("Xóa sản phẩm thất bại khi không tồn tại")
-    void deleteProduct_NotFound() {
+            productService.deleteProduct(1L);
 
-        when(productRepository.findById(10L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> productService.deleteProduct(10L))
-                .isInstanceOf(NotFoundException.class);
-    }
-    
-    @Test
-    void getProductById_NoThumbnail() {
-
-        Product product = new Product();
-        product.setId(1L);
-        product.setThumbnailMediaId(null);
-
-        when(productRepository.findById(1L))
-                .thenReturn(Optional.of(product));
-
-        ProductDetailVm result = productService.getProductById(1L);
-
-        assertThat(result.id()).isEqualTo(1L);
-
-        verify(mediaService, never()).getMedia(any());
+            verify(productOptionCombinationRepository).deleteAll(List.of(combination));
+            verify(productRepository).save(any(Product.class));
+        }
     }
 
-    // @Test
-    // void testServiceIsNotNull() {
-    //     assertNotNull(productService);
-    // }
+    // ==================== getProductSlug ====================
 
-    @Test
-    void setProductImages_WhenIdsEmpty_ShouldDeleteAllAndReturnEmpty() {
-        // Arrange
-        Product product = Product.builder().id(1L).build();
-        List<Long> emptyIds = Collections.emptyList();
+    @Nested
+    class GetProductSlugTest {
 
-        // Act
-        List<ProductImage> result = productService.setProductImages(emptyIds, product);
+        @Test
+        void getProductSlug_whenProductExists_shouldReturnSlug() {
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
 
-        // Assert
-        assertTrue(result.isEmpty());
-        verify(productImageRepository, times(1)).deleteByProductId(1L);
+            ProductSlugGetVm result = productService.getProductSlug(1L);
+
+            assertEquals("test-product", result.slug());
+        }
+
+        @Test
+        void getProductSlug_whenProductHasParent_shouldReturnParentSlug() {
+            Product parentProduct = Product.builder().id(100L).slug("parent-slug").build();
+            sampleProduct.setParent(parentProduct);
+
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+
+            ProductSlugGetVm result = productService.getProductSlug(1L);
+
+            assertEquals("parent-slug", result.slug());
+            assertEquals(1L, result.productVariantId());
+        }
+
+        @Test
+        void getProductSlug_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> productService.getProductSlug(999L));
+        }
     }
 
-    @Test
-    @DisplayName("Update sản phẩm: Lỗi khi slug mới trùng với sản phẩm khác")
-    void updateProduct_DuplicateSlug_ThrowsException() {
-        // Arrange
-        Long productId = 1L;
-        Product existingProduct = new Product();
-        existingProduct.setId(productId);
-        
-        ProductPutVm putVm = mock(ProductPutVm.class);
-        when(putVm.slug()).thenReturn("new-slug");
+    // ==================== getProductEsDetailById ====================
 
-        Product otherProduct = new Product();
-        otherProduct.setId(2L); // Sản phẩm khác đã chiếm slug này
+    @Nested
+    class GetProductEsDetailByIdTest {
 
-        when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
-        when(productRepository.findBySlugAndIsPublishedTrue("new-slug")).thenReturn(Optional.of(otherProduct));
+        @Test
+        void getProductEsDetailById_whenProductExists_shouldReturnEsDetail() {
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
 
-        // Act & Assert
-        assertThatThrownBy(() -> productService.updateProduct(productId, putVm))
-                .isInstanceOf(DuplicatedException.class);
+            ProductEsDetailVm result = productService.getProductEsDetailById(1L);
+
+            assertNotNull(result);
+            assertEquals(1L, result.id());
+            assertEquals("Test Product", result.name());
+            assertEquals("test-product", result.slug());
+            assertEquals(100.0, result.price());
+            assertEquals("Test Brand", result.brand());
+        }
+
+        @Test
+        void getProductEsDetailById_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> productService.getProductEsDetailById(999L));
+        }
     }
 
-    //     // ===============================
-    // // Test for ValidateProductPrice
-    // // ===============================
+    // ==================== getProductsByMultiQuery ====================
 
-    // static class ValidateProductPriceTest {
+    @Nested
+    class GetProductsByMultiQueryTest {
 
-    //     static class TestClass1 {
-    //         @com.yas.product.validation.ValidateProductPrice
-    //         Double price;
-    //     }
+        @Test
+        void getProductsByMultiQuery_shouldReturnProductsGetVm() {
+            Page<Product> productPage = new PageImpl<>(List.of(sampleProduct), PageRequest.of(0, 10), 1);
 
-    //     static class TestClass2 {
-    //         @com.yas.product.validation.ValidateProductPrice
-    //         Double price;
-    //     }
+            when(productRepository.findByProductNameAndCategorySlugAndPriceBetween(
+                anyString(), anyString(), any(), any(), any(Pageable.class)))
+                .thenReturn(productPage);
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
 
-    //     static class TestClass3 {
-    //         @com.yas.product.validation.ValidateProductPrice
-    //         Double price;
-    //     }
+            ProductsGetVm result = productService.getProductsByMultiQuery(0, 10, "Test", "", null, null);
 
-    //     @Test
-    //     void testDefaultMessage() throws Exception {
+            assertNotNull(result);
+            assertEquals(1, result.productContent().size());
+            assertEquals(0, result.pageNo());
+        }
+    }
 
-    //         var annotation = TestClass1.class
-    //                 .getDeclaredField("price")
-    //                 .getAnnotation(com.yas.product.validation.ValidateProductPrice.class);
+    // ==================== getProductVariationsByParentId ====================
 
-    //         assertEquals("Invalid product price", annotation.message());
-    //     }
+    @Nested
+    class GetProductVariationsByParentIdTest {
 
-    //     @Test
-    //     void testDefaultGroups() throws Exception {
+        @Test
+        void getProductVariationsByParentId_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
 
-    //         var annotation = TestClass2.class
-    //                 .getDeclaredField("price")
-    //                 .getAnnotation(com.yas.product.validation.ValidateProductPrice.class);
+            assertThrows(NotFoundException.class,
+                () -> productService.getProductVariationsByParentId(999L));
+        }
 
-    //         assertEquals(0, annotation.groups().length);
-    //     }
+        @Test
+        void getProductVariationsByParentId_whenProductHasNoOptions_shouldReturnEmptyList() {
+            sampleProduct.setHasOptions(false);
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
 
-    //     @Test
-    //     void testDefaultPayload() throws Exception {
+            var result = productService.getProductVariationsByParentId(1L);
 
-    //         var annotation = TestClass3.class
-    //                 .getDeclaredField("price")
-    //                 .getAnnotation(com.yas.product.validation.ValidateProductPrice.class);
+            assertTrue(result.isEmpty());
+        }
+    }
 
-    //         assertEquals(0, annotation.payload().length);
-    //     }
-    // }
-            
+    // ==================== exportProducts ====================
+
+    @Nested
+    class ExportProductsTest {
+
+        @Test
+        void exportProducts_shouldReturnExportingDetails() {
+            when(productRepository.getExportingProducts(anyString(), anyString()))
+                .thenReturn(List.of(sampleProduct));
+
+            var result = productService.exportProducts("Test", "");
+
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+        }
+    }
+
+    // ==================== updateProductQuantity ====================
+
+    @Nested
+    class UpdateProductQuantityTest {
+
+        @Test
+        void updateProductQuantity_shouldUpdateStockQuantity() {
+            ProductQuantityPostVm quantityVm = new ProductQuantityPostVm(1L, 50L);
+
+            when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(sampleProduct));
+            when(productRepository.saveAll(anyList())).thenReturn(List.of(sampleProduct));
+
+            productService.updateProductQuantity(List.of(quantityVm));
+
+            verify(productRepository).saveAll(anyList());
+        }
+    }
+
+    // ==================== subtractStockQuantity ====================
+
+    @Nested
+    class SubtractStockQuantityTest {
+
+        @Test
+        void subtractStockQuantity_whenTrackingEnabled_shouldSubtract() {
+            sampleProduct.setStockTrackingEnabled(true);
+            sampleProduct.setStockQuantity(100L);
+
+            ProductQuantityPutVm quantityPutVm = new ProductQuantityPutVm(1L, 10L);
+
+            when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(sampleProduct));
+            when(productRepository.saveAll(anyList())).thenReturn(List.of(sampleProduct));
+
+            productService.subtractStockQuantity(List.of(quantityPutVm));
+
+            verify(productRepository).saveAll(anyList());
+        }
+    }
+
+    // ==================== restoreStockQuantity ====================
+
+    @Nested
+    class RestoreStockQuantityTest {
+
+        @Test
+        void restoreStockQuantity_whenTrackingEnabled_shouldRestore() {
+            sampleProduct.setStockTrackingEnabled(true);
+            sampleProduct.setStockQuantity(90L);
+
+            ProductQuantityPutVm quantityPutVm = new ProductQuantityPutVm(1L, 10L);
+
+            when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(sampleProduct));
+            when(productRepository.saveAll(anyList())).thenReturn(List.of(sampleProduct));
+
+            productService.restoreStockQuantity(List.of(quantityPutVm));
+
+            verify(productRepository).saveAll(anyList());
+        }
+    }
+
+    // ==================== getProductByIds ====================
+
+    @Nested
+    class GetProductByIdsTest {
+
+        @Test
+        void getProductByIds_shouldReturnProductList() {
+            when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(sampleProduct));
+
+            List<ProductListVm> result = productService.getProductByIds(List.of(1L));
+
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+        }
+
+        @Test
+        void getProductByIds_whenNoProducts_shouldReturnEmptyList() {
+            when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of());
+
+            List<ProductListVm> result = productService.getProductByIds(List.of(999L));
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    // ==================== getProductByCategoryIds ====================
+
+    @Nested
+    class GetProductByCategoryIdsTest {
+
+        @Test
+        void getProductByCategoryIds_shouldReturnProducts() {
+            when(productRepository.findByCategoryIdsIn(List.of(1L))).thenReturn(List.of(sampleProduct));
+
+            List<ProductListVm> result = productService.getProductByCategoryIds(List.of(1L));
+
+            assertEquals(1, result.size());
+        }
+    }
+
+    // ==================== getProductByBrandIds ====================
+
+    @Nested
+    class GetProductByBrandIdsTest {
+
+        @Test
+        void getProductByBrandIds_shouldReturnProducts() {
+            when(productRepository.findByBrandIdsIn(List.of(1L))).thenReturn(List.of(sampleProduct));
+
+            List<ProductListVm> result = productService.getProductByBrandIds(List.of(1L));
+
+            assertEquals(1, result.size());
+        }
+    }
+
+    // ==================== getProductsForWarehouse ====================
+
+    @Nested
+    class GetProductsForWarehouseTest {
+
+        @Test
+        void getProductsForWarehouse_shouldReturnProductInfoList() {
+            when(productRepository.findProductForWarehouse(
+                anyString(), anyString(), anyList(), anyString()))
+                .thenReturn(List.of(sampleProduct));
+
+            List<ProductInfoVm> result = productService.getProductsForWarehouse(
+                "Test", "SKU", List.of(1L), FilterExistInWhSelection.ALL);
+
+            assertEquals(1, result.size());
+            assertEquals("Test Product", result.get(0).name());
+        }
+    }
+
+    // ==================== getRelatedProductsBackoffice ====================
+
+    @Nested
+    class GetRelatedProductsBackofficeTest {
+
+        @Test
+        void getRelatedProductsBackoffice_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                () -> productService.getRelatedProductsBackoffice(999L));
+        }
+
+        @Test
+        void getRelatedProductsBackoffice_whenProductExists_shouldReturnRelatedProducts() {
+            Product relatedProduct = Product.builder()
+                .id(2L)
+                .name("Related Product")
+                .slug("related-product")
+                .price(50.0)
+                .isAllowedToOrder(true)
+                .isPublished(true)
+                .isFeatured(false)
+                .isVisibleIndividually(true)
+                .build();
+
+            ProductRelated productRelated = ProductRelated.builder()
+                .product(sampleProduct)
+                .relatedProduct(relatedProduct)
+                .build();
+
+            sampleProduct.setRelatedProducts(List.of(productRelated));
+
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+
+            List<ProductListVm> result = productService.getRelatedProductsBackoffice(1L);
+
+            assertEquals(1, result.size());
+            assertEquals("Related Product", result.get(0).name());
+        }
+    }
+
+    // ==================== getRelatedProductsStorefront ====================
+
+    @Nested
+    class GetRelatedProductsStorefrontTest {
+
+        @Test
+        void getRelatedProductsStorefront_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                () -> productService.getRelatedProductsStorefront(999L, 0, 10));
+        }
+
+        @Test
+        void getRelatedProductsStorefront_shouldReturnRelatedProducts() {
+            Product relatedProduct = Product.builder()
+                .id(2L)
+                .name("Related")
+                .slug("related")
+                .price(50.0)
+                .isPublished(true)
+                .thumbnailMediaId(2L)
+                .build();
+
+            ProductRelated productRelated = ProductRelated.builder()
+                .product(sampleProduct)
+                .relatedProduct(relatedProduct)
+                .build();
+
+            Page<ProductRelated> page = new PageImpl<>(List.of(productRelated), PageRequest.of(0, 10), 1);
+
+            when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+            when(productRelatedRepository.findAllByProduct(any(Product.class), any(Pageable.class)))
+                .thenReturn(page);
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(2L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
+
+            ProductsGetVm result = productService.getRelatedProductsStorefront(1L, 0, 10);
+
+            assertNotNull(result);
+            assertEquals(1, result.productContent().size());
+        }
+    }
+
+    // ==================== updateProduct ====================
+
+    @Nested
+    class UpdateProductTest {
+
+        @Test
+        void updateProduct_whenProductNotFound_shouldThrowNotFoundException() {
+            when(productRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                () -> productService.updateProduct(999L, null));
+        }
+    }
+
+    // ==================== getProductCheckoutList ====================
+
+    @Nested
+    class GetProductCheckoutListTest {
+
+        @Test
+        void getProductCheckoutList_shouldReturnCheckoutList() {
+            Page<Product> productPage = new PageImpl<>(List.of(sampleProduct), PageRequest.of(0, 10), 1);
+
+            when(productRepository.findAllPublishedProductsByIds(anyList(), any(Pageable.class)))
+                .thenReturn(productPage);
+            when(mediaService.getMedia(anyLong()))
+                .thenReturn(new NoFileMediaVm(1L, "caption", "file.jpg", "image/jpeg", "http://example.com/img.jpg"));
+
+            var result = productService.getProductCheckoutList(0, 10, List.of(1L));
+
+            assertNotNull(result);
+            assertEquals(1, result.productCheckoutListVms().size());
+            assertEquals(0, result.pageNo());
+        }
+    }
 }
