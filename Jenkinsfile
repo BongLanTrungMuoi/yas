@@ -120,6 +120,8 @@ pipeline
             steps {
                 sh 'mvn package -pl order -am -DskipTests'
             }
+        }
+
     }
 
     post 
@@ -130,7 +132,5 @@ pipeline
         failure {
             echo 'Pipeline FAILED'
         }
-    }
-
     }
 }
