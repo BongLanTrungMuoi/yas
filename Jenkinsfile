@@ -1,12 +1,15 @@
-pipeline {
+pipeline 
+{
 
-    agent {
+    agent 
+    {
         docker {
             image 'maven:3.9.6-eclipse-temurin-21'
             args '-v $HOME/.m2:/root/.m2 -u root'
         }
     }
-    stages {
+    stages 
+    {
         stage('Test Media') {
             when {
                 changeset "media/**"
@@ -119,14 +122,13 @@ pipeline {
             }
     }
 
-    post {
-        success {
-            echo 'Pipeline SUCCESS'
-        }
-        failure {
-            echo 'Pipeline FAILED'
-        }
-    }
+    // post {
+    //     success {
+    //         echo 'Pipeline SUCCESS'
+    //     }
+    //     failure {
+    //         echo 'Pipeline FAILED'
+    //     }
 
-}
+    }
 }
