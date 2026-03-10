@@ -11,9 +11,9 @@ pipeline
     stages 
     {
         stage('Test Media') {
-            when {
-                changeset "media/**"
-            }
+            // when {
+            //     changeset "media/**"
+            // }
             steps {
                 sh 'mvn -e test -pl media -am'
             }
@@ -30,18 +30,18 @@ pipeline
         }
 
         stage('Build Media') {
-            when {
-                changeset "media/**"
-            }
+            // when {
+            //     changeset "media/**"
+            // }
             steps {
                 sh 'mvn package -pl media -am -DskipTests'
             }
         }
 
         stage('Test Product') {
-            when {
-                changeset "product/**"
-            }
+            // when {
+            //     changeset "product/**"
+            // }
             steps {
                 sh 'mvn test -pl product -am'
             }
@@ -58,9 +58,9 @@ pipeline
         }
 
         stage('Build Product') {
-            when {
-                changeset "product/**"
-            }
+            // when {
+            //     changeset "product/**"
+            // }
             steps {
                 sh 'mvn package -pl product -am -DskipTests'
             }
