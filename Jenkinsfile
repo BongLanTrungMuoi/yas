@@ -64,9 +64,9 @@ pipeline {
         }
 
         stage('Test Cart') {
-            when {
-                changeset "cart/**"
-            }
+            // when {
+            //     changeset "cart/**"
+            // }
             steps {
                 sh 'mvn test -pl cart -am'
             }
@@ -83,13 +83,40 @@ pipeline {
         }
     
         stage('Build Cart') {
-            when {
-                changeset "cart/**"
-            }
+            // when {
+            //     changeset "cart/**"
+            // }
             steps {
                 sh 'mvn package -pl cart -am -DskipTests'
             }
         }
+
+        stage('Test Order') {
+            // when {
+            //     changeset "order/**"
+            // }
+            steps {
+                sh 'mvn test -pl order -am'
+            }
+            post {
+                always {
+                    junit 'order/target/surefire-reports/*.xml'
+                    jacoco(
+                    execPattern: 'order/target/jacoco.exec',
+                    minimumLineCoverage: '70',
+                    maximumLineCoverage: '100'
+                )
+                }
+            }
+        }
+
+        stage('Build Order') {
+            // when {
+            //     changeset "order/**"
+            // }
+            steps {
+                sh 'mvn package -pl order -am -DskipTests'
+            }
     }
 
     post {
