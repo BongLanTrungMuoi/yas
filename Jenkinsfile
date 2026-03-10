@@ -122,13 +122,15 @@ pipeline
             }
     }
 
-    // post {
-    //     success {
-    //         echo 'Pipeline SUCCESS'
-    //     }
-    //     failure {
-    //         echo 'Pipeline FAILED'
-    //     }
+    post 
+    {
+        success {
+            echo 'Pipeline SUCCESS'
+        }
+        failure {
+            echo 'Pipeline FAILED'
+        }
+    }
 
     }
 }
