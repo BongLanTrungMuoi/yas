@@ -18,7 +18,7 @@ pipeline {
                 always {
                     junit 'media/target/surefire-reports/*.xml'
                     jacoco(
-                    execPattern: 'product/target/jacoco.exec',
+                    execPattern: 'media/target/jacoco.exec',
                     minimumLineCoverage: '70',
                     maximumLineCoverage: '100'
                 )
