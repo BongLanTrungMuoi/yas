@@ -47,6 +47,21 @@ pipeline {
             }
         }
 
+        stage('Docker check') {
+            steps {
+                sh '''
+                    echo "Checking Docker installation..."
+                    docker --version || { echo "Docker is not installed"; exit 1; }
+
+                    echo "Listing Docker images..."
+                    docker images
+
+                    echo "Listing Docker containers..."
+                    docker ps -a
+                '''
+            }
+        }
+
         // ====================================================================
         // PART 1: PRE-SCAN & SECURITY CHECKS (RUN FIRST)
         // ====================================================================
