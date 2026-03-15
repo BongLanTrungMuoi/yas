@@ -31,6 +31,22 @@ pipeline {
     agent any
 
     stages {
+        stage('Debug Jenkins Environment') {
+            steps {
+                sh '''
+                    echo "Current user:"
+                    whoami
+
+                    echo "Running processes related to Jenkins:"
+                    ps aux | grep jenkins || true
+
+                    echo "Workspace:"
+                    pwd
+                    ls -la
+                '''
+            }
+        }
+
         // ====================================================================
         // PART 1: PRE-SCAN & SECURITY CHECKS (RUN FIRST)
         // ====================================================================
