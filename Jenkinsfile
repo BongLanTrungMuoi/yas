@@ -4,11 +4,15 @@ def verifyCoverageAndPublish(String serviceTitle, String moduleDir) {
         returnStdout: true
     ).trim()
 
+    coverageStr = 'N/A'
+    echo "DEBUG: coverageStr = ${coverageStr}"
+
     if (coverageStr == 'N/A' || coverageStr == '') {
         publishChecks name: "Service / ${serviceTitle}", status: 'COMPLETED', conclusion: 'FAILURE', title: 'Coverage Error', summary: "Jacoco report not found. Please check Jenkins logs."
     }
 
     int coverage = coverageStr.toInteger()
+    echo "DEBUG: coverage (int) = ${coverage}"
 
     if (coverage < 70) {
         publishChecks name: "Service / ${serviceTitle}", status: 'COMPLETED', conclusion: 'FAILURE', title: 'Low Coverage', summary: "**Coverage: ${coverage}% / 100%**\n\nFailed: Code coverage is below the required 70%!"
